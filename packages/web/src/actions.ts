@@ -7,13 +7,16 @@ import { CodeHostType, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
-import { decrypt, encrypt, generateApiKey, hashSecret } from "@sourcebot/crypto";
+import { decrypt, encrypt, generateApiKey, hashSecret, getTokenFromConfig } from "@sourcebot/crypto";
 import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus, StripeSubscriptionStatus, Org, ApiKey } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
+import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
+import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
+import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import Ajv from "ajv";
 import { StatusCodes } from "http-status-codes";
 import { cookies, headers } from "next/headers";
@@ -1144,6 +1147,25 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
                 }
             });
 
+            // Delete the account request if it exists since we've redeemed an invite
+            const accountRequest = await tx.accountRequest.findUnique({
+                where: {
+                    requestedById_orgId: {
+                        requestedById: user.id,
+                        orgId: invite.orgId,
+                    }
+                },
+            });
+
+            if (accountRequest) {
+                logger.info(`Deleting account request ${accountRequest.id} for user ${user.id} since they've redeemed an invite`);
+                await tx.accountRequest.delete({
+                    where: {
+                        id: accountRequest.id,
+                    }
+                });
+            }
+
             if (IS_BILLING_ENABLED) {
                 const result = await incrementOrgSeatCount(invite.orgId, tx);
                 if (isServiceError(result)) {
@@ -1712,6 +1734,76 @@ export const getSearchContexts = async (domain: string) => sew(() =>
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
     ));
 
+export const getRepoImage = async (repoId: number, domain: string): Promise<ArrayBuffer | ServiceError> => sew(async () => {
+    return await withAuth(async (userId) => {
+        return await withOrgMembership(userId, domain, async ({ org }) => {
+            const repo = await prisma.repo.findUnique({
+                where: {
+                    id: repoId,
+                    orgId: org.id,
+                },
+                include: {
+                    connections: {
+                        include: {
+                            connection: true,
+                        }
+                    }
+                }
+            });
+
+            if (!repo || !repo.imageUrl) {
+                return notFound();
+            }
+
+            const authHeaders: Record<string, string> = {};
+            for (const { connection } of repo.connections) {
+                try {
+                    if (connection.connectionType === 'github') {
+                        const config = connection.config as unknown as GithubConnectionConfig;
+                        if (config.token) {
+                            const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                            authHeaders['Authorization'] = `token ${token}`;
+                            break;
+                        }
+                    } else if (connection.connectionType === 'gitlab') {
+                        const config = connection.config as unknown as GitlabConnectionConfig;
+                        if (config.token) {
+                            const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                            authHeaders['PRIVATE-TOKEN'] = token;
+                            break;
+                        }
+                    } else if (connection.connectionType === 'gitea') {
+                        const config = connection.config as unknown as GiteaConnectionConfig;
+                        if (config.token) {
+                            const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                            authHeaders['Authorization'] = `token ${token}`;
+                            break;
+                        }
+                    }
+                } catch (error) {
+                    logger.warn(`Failed to get token for connection ${connection.id}:`, error);
+                }
+            }
+
+            try {
+                const response = await fetch(repo.imageUrl, {
+                    headers: authHeaders,
+                });
+
+                if (!response.ok) {
+                    logger.warn(`Failed to fetch image from ${repo.imageUrl}: ${response.status}`);
+                    return notFound();
+                }
+
+                const imageBuffer = await response.arrayBuffer();
+                return imageBuffer;
+            } catch (error) {
+                logger.error(`Error proxying image for repo ${repoId}:`, error);
+                return notFound();
+            }
+        }, /* minRequiredRole = */ OrgRole.GUEST);
+    }, /* allowSingleTenantUnauthedAccess = */ true);
+});
 
 ////// Helpers ///////
 

@@ -7,9 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Delete account join request when redeeming an invite. [#352](https://github.com/sourcebot-dev/sourcebot/pull/352)
+
+## [4.3.0] - 2025-06-11
+
+### Added
+- Changed repository link in search to file tree + move external link to code host logo. [#340](https://github.com/sourcebot-dev/sourcebot/pull/340)
+- Added a basic file search dialog when browsing a repository. [#341](https://github.com/sourcebot-dev/sourcebot/pull/341)
+
+### Fixed
+- Text highlighting clarity. [#342](https://github.com/sourcebot-dev/sourcebot/pull/342)
+- Fixed repo list column header styling. [#344](https://github.com/sourcebot-dev/sourcebot/pull/344)
+- Clean up successful and failed jobs in Redis queues. [#343](https://github.com/sourcebot-dev/sourcebot/pull/343)
+- Fixed issue with files occasionally not loading after moving the cursor rapidly over the file browser. [#346](https://github.com/sourcebot-dev/sourcebot/pull/346)
+
+## [4.2.0] - 2025-06-09
+
 ### Added
 - Added seperate page for signup. [#311](https://github.com/sourcebot-dev/sourcebot/pull/331)
+- Fix repo images in authed instance case and add manifest json. [#332](https://github.com/sourcebot-dev/sourcebot/pull/332)
 - Added encryption logic for license keys. [#335](https://github.com/sourcebot-dev/sourcebot/pull/335)
+- Added hover tooltip for long repo names in filter panel. [#338](https://github.com/sourcebot-dev/sourcebot/pull/338)
+- Added repo shard validation on startup. [#339](https://github.com/sourcebot-dev/sourcebot/pull/339)
+- Added support for a file explorer when browsing files. [#336](https://github.com/sourcebot-dev/sourcebot/pull/336)
 
 ## [4.1.1] - 2025-06-03
 

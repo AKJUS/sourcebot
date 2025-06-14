@@ -73,13 +73,12 @@ export const getPlan = (): Plan => {
     if (licenseKey) {
         const expiryDate = new Date(licenseKey.expiryDate);
         if (expiryDate.getTime() < new Date().getTime()) {
-            logger.error(`The provided license key has expired (${expiryDate.toLocaleString()}). Falling back to oss plan. Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
+            logger.error(`The provided license key has expired (${expiryDate.toLocaleString()}). Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
             process.exit(1);
         }
 
         return licenseKey.seats === SOURCEBOT_UNLIMITED_SEATS ? "self-hosted:enterprise-unlimited" : "self-hosted:enterprise";
     } else {
-        logger.info(`No valid license key found. Falling back to oss plan.`);
         return "oss"; 
     }
 }

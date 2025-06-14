@@ -6,12 +6,13 @@ import { ArrowUpDown, ExternalLink, Clock, Loader2, CheckCircle2, XCircle, Trash
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
+import { cn, getRepoImageSrc } from "@/lib/utils"
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { AddRepoButton } from "./addRepoButton"
 
 export type RepositoryColumnInfo = {
+    repoId: number
     name: string
     imageUrl?: string
     connections: {
@@ -112,7 +113,7 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
                     <div className="relative h-8 w-8 overflow-hidden rounded-md border bg-muted">
                         {repo.imageUrl ? (
                             <Image
-                                src={repo.imageUrl || "/placeholder.svg"}
+                                src={getRepoImageSrc(repo.imageUrl, repo.repoId, domain) || "/placeholder.svg"}
                                 alt={`${repo.name} logo`}
                                 width={32}
                                 height={32}
@@ -181,8 +182,11 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button 
-                                variant={currentFilter ? "secondary" : "ghost"}
-                                className="px-0 font-medium"
+                                variant="ghost"
+                                className={cn(
+                                    "px-0 font-medium hover:bg-transparent focus:bg-transparent active:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0",
+                                    currentFilter ? "text-primary hover:text-primary" : "text-muted-foreground hover:text-muted-foreground"
+                                )}
                             >
                                 Status
                                 <ListFilter className={cn(
@@ -227,10 +231,10 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
                 <Button
                     variant="ghost"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    className="px-0 font-medium"
+                    className="px-0 font-medium hover:bg-transparent focus:bg-transparent active:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                 >
                     Last Indexed
-                    <ArrowUpDown className="ml-2 h-3.5 w-3.5 text-muted-foreground" />
+                    <ArrowUpDown className="ml-2 h-3.5 w-3.5" />
                 </Button>
             </div>
         ),
