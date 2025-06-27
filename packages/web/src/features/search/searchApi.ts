@@ -10,6 +10,7 @@ import { SearchRequest, SearchResponse, SourceRange } from "./types";
 import { OrgRole, Repo } from "@sourcebot/db";
 import * as Sentry from "@sentry/nextjs";
 import { sew, withAuth, withOrgMembership } from "@/actions";
+import { base64Decode } from "@sourcebot/shared";
 
 // List of supported query prefixes in zoekt.
 // @see : https://github.com/sourcebot-dev/zoekt/blob/main/query/parse.go#L417
@@ -105,13 +106,14 @@ const getFileWebUrl = (template: string, branch: string, fileName: string): stri
 
     const url =
         template.substring("{{URLJoinPath ".length, template.indexOf("}}"))
-            .replace(".Version", branch)
-            .replace(".Path", fileName)
             .split(" ")
             .map((part) => {
                 // remove wrapping quotes
                 if (part.startsWith("\"")) part = part.substring(1);
                 if (part.endsWith("\"")) part = part.substring(0, part.length - 1);
+                // Replace variable references
+                if (part == ".Version") part = branch;
+                if (part == ".Path") part = fileName;
                 return part;
             })
             .join("/");
@@ -125,7 +127,7 @@ const getFileWebUrl = (template: string, branch: string, fileName: string): stri
 }
 
 export const search = async ({ query, matches, contextLines, whole }: SearchRequest, domain: string, apiKey: string | undefined = undefined) => sew(() =>
-    withAuth((userId) =>
+    withAuth((userId, _apiKeyHash) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const transformedQuery = await transformZoektQuery(query, org.id);
             if (isServiceError(transformedQuery)) {
@@ -177,7 +179,6 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             const searchBody = await searchResponse.json();
 
             const parser = zoektSearchResponseSchema.transform(async ({ Result }) => {
-
                 // @note (2025-05-12): in zoekt, repositories are identified by the `RepositoryID` field
                 // which corresponds to the `id` in the Repo table. In order to efficiently fetch repository
                 // metadata when transforming (potentially thousands) of file matches, we aggregate a unique
@@ -264,7 +265,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                             .filter((chunk) => !chunk.FileName) // Filter out filename chunks.
                             .map((chunk) => {
                                 return {
-                                    content: chunk.Content,
+                                    content: base64Decode(chunk.Content),
                                     matchRanges: chunk.Ranges.map((range) => ({
                                         start: {
                                             byteOffset: range.Start.ByteOffset,
@@ -295,7 +296,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                                 }
                             }),
                         branches: file.Branches,
-                        content: file.Content,
+                        content: file.Content ? base64Decode(file.Content) : undefined,
                     }
                 }).filter((file) => file !== undefined) ?? [];
 
@@ -346,4 +347,4 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
 
             return parser.parseAsync(searchBody);
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
-)
+    );

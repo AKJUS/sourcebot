@@ -2,7 +2,6 @@
 
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { createContext, useCallback, useEffect, useState } from "react";
-import { BOTTOM_PANEL_MIN_SIZE } from "./components/bottomPanel";
 
 export interface BrowseState {
     selectedSymbolInfo?: {
@@ -12,6 +11,8 @@ export interface BrowseState {
         language: string;
     }
     isBottomPanelCollapsed: boolean;
+    isFileTreePanelCollapsed: boolean;
+    isFileSearchOpen: boolean;
     activeExploreMenuTab: "references" | "definitions";
     bottomPanelSize: number;
 }
@@ -19,8 +20,10 @@ export interface BrowseState {
 const defaultState: BrowseState = {
     selectedSymbolInfo: undefined,
     isBottomPanelCollapsed: true,
+    isFileTreePanelCollapsed: false,
+    isFileSearchOpen: false,
     activeExploreMenuTab: "references",
-    bottomPanelSize: BOTTOM_PANEL_MIN_SIZE,
+    bottomPanelSize: 35,
 };
 
 export const SET_BROWSE_STATE_QUERY_PARAM = "setBrowseState";
@@ -33,8 +36,13 @@ export const BrowseStateContext = createContext<{
     updateBrowseState: () => {},
 });
 
-export const BrowseStateProvider = ({ children }: { children: React.ReactNode }) => {
+interface BrowseStateProviderProps {
+    children: React.ReactNode;
+}
+
+export const BrowseStateProvider = ({ children }: BrowseStateProviderProps) => {
     const [state, setState] = useState<BrowseState>(defaultState);
+
     const hydratedBrowseState = useNonEmptyQueryParam(SET_BROWSE_STATE_QUERY_PARAM);
 
     const onUpdateState = useCallback((state: Partial<BrowseState>) => {

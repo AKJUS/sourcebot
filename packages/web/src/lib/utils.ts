@@ -301,12 +301,6 @@ export const isServiceError = (data: unknown): data is ServiceError => {
         'message' in data;
 }
 
-// From https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
-export const base64Decode = (base64: string): string => {
-    const binString = atob(base64);
-    return Buffer.from(Uint8Array.from(binString, (m) => m.codePointAt(0)!).buffer).toString();
-}
-
 // @see: https://stackoverflow.com/a/65959350/23221295
 export const isDefined = <T>(arg: T | null | undefined): arg is T extends null | undefined ? never : T => {
     return arg !== null && arg !== undefined;
@@ -409,3 +403,31 @@ export const requiredQueryParamGuard = (request: NextRequest, param: string): Se
     }
     return value;
 }
+
+export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, domain: string): string | undefined => {
+    if (!imageUrl) return undefined;
+    
+    try {
+        const url = new URL(imageUrl);
+        
+        // List of known public instances that don't require authentication
+        const publicHostnames = [
+            'github.com',
+            'avatars.githubusercontent.com',
+            'gitea.com',
+            'bitbucket.org',
+        ];
+        
+        const isPublicInstance = publicHostnames.includes(url.hostname);
+        
+        if (isPublicInstance) {
+            return imageUrl;
+        } else {
+            // Use the proxied route for self-hosted instances
+            return `/api/${domain}/repos/${repoId}/image`;
+        }
+    } catch {
+        // If URL parsing fails, use the original URL
+        return imageUrl;
+    }
+};

@@ -1,5 +1,6 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
+import { SOURCEBOT_CLOUD_ENVIRONMENT } from "@sourcebot/shared/client";
 
 // Booleans are specified as 'true' or 'false' strings.
 const booleanSchema = z.enum(["true", "false"]);
@@ -67,6 +68,9 @@ export const env = createEnv({
         STRIPE_WEBHOOK_SECRET: z.string().optional(),
         STRIPE_ENABLE_TEST_CLOCKS: booleanSchema.default('false'),
 
+        LOGTAIL_TOKEN: z.string().optional(),
+        LOGTAIL_HOST: z.string().url().optional(),
+
         // Misc
         CONFIG_MAX_REPOS_NO_TOKEN: numberSchema.default(Number.MAX_SAFE_INTEGER),
         NODE_ENV: z.enum(["development", "test", "production"]),
@@ -81,6 +85,7 @@ export const env = createEnv({
 
         // EE License
         SOURCEBOT_EE_LICENSE_KEY: z.string().optional(),
+        SOURCEBOT_EE_AUDIT_LOGGING_ENABLED: booleanSchema.default('true'),
 
         // GitHub app for review agent
         GITHUB_APP_ID: z.string().optional(),
@@ -104,7 +109,7 @@ export const env = createEnv({
         NEXT_PUBLIC_SOURCEBOT_VERSION: z.string().default('unknown'),
         NEXT_PUBLIC_POLLING_INTERVAL_MS: numberSchema.default(5000),
 
-        NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: z.enum(["dev", "demo", "staging", "prod"]).optional(),
+        NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: z.enum(SOURCEBOT_CLOUD_ENVIRONMENT).optional(),
     },
     // For Next.js >= 13.4.4, you only need to destructure client variables:
     experimental__runtimeEnv: {

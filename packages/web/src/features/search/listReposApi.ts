@@ -6,7 +6,7 @@ import { zoektListRepositoriesResponseSchema } from "./zoektSchema";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 
 export const listRepositories = async (domain: string, apiKey: string | undefined = undefined): Promise<ListRepositoriesResponse | ServiceError> => sew(() =>
-    withAuth((userId) =>
+    withAuth((userId, _apiKeyHash) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const body = JSON.stringify({
                 opts: {
@@ -42,6 +42,8 @@ export const listRepositories = async (domain: string, apiKey: string | undefine
                 }))
             } satisfies ListRepositoriesResponse));
 
-            return parser.parse(listBody);
+            const result = parser.parse(listBody);
+
+            return result;
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 );
