@@ -16,7 +16,7 @@
         "@sourcebot/db": "workspace:*",
         "@sourcebot/schemas": "workspace:*",
         "@t3-oss/env-core": "^0.12.0",
-        "ajv": "^8.17.1",
+        "ajv": "^8.18.0",
         "micromatch": "^4.0.8",
         "strip-json-comments": "^5.0.1",
         "triple-beam": "^1.4.1",

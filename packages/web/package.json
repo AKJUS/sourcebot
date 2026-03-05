@@ -114,7 +114,7 @@
     "@viz-js/lang-dot": "^1.0.4",
     "@xiechao/codemirror-lang-handlebars": "^1.0.4",
     "ai": "^6.0.105",
-    "ajv": "^8.17.1",
+    "ajv": "^8.18.0",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.0",
     "client-only": "^0.0.1",
